@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>User - Task List</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="dark">
+  <aside class="sidebar small">
+    <div class="brand">Task<span>Hub</span></div>
+    <nav>
+      <a href="admin.html">Admin</a>
+      <a class="active">Tasks</a>
+    </nav>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <h1>Daftar Tugas</h1>
+        <p class="sub">Tugas yang dikirim oleh admin</p>
+      </div>
+      <div class="top-right">
+        <input id="filterUser" placeholder="Filter username (kosong = semua)" oninput="loadTasks()" />
+        <button class="btn ghost" onclick="loadTasks()">Refresh</button>
+      </div>
+    </header>
+
+    <section class="container">
+      <div id="list" class="cards">Memuat tugas...</div>
+    </section>
+
+    <footer class="foot">© <span id="year2"></span> TaskHub — User</footer>
+  </main>
+
+  <script src="script.js"></script>
+  <script>document.getElementById('year2').innerText=new Date().getFullYear(); loadTasks();</script>
+</body>
+</html>
