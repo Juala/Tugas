@@ -1,71 +1,164 @@
-<!doctype html>
-<html lang="id">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Admin - Task Dashboard</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body class="dark">
-  <aside class="sidebar">
-    <div class="brand">Task<span>Hub</span></div>
-    <nav>
-      <a class="active">Dashboard</a>
-      <a href="user.html" target="_blank">User View</a>
-    </nav>
-    <div class="sidebar-foot">Admin Panel</div>
-  </aside>
+// ====== GANTI API_URL DENGAN LINK WEBAPP APPS SCRIPT MU ======
+const API_URL = "YOUR_WEBAPP_URL_HERE"; 
 
-  <main class="main">
-    <header class="topbar">
-      <div class="top-left">
-        <h1>Admin Dashboard</h1>
-        <p class="sub">Tambah tugas & lihat preview</p>
-      </div>
-      <div class="top-right">
-        <button id="refreshBtn" class="btn ghost" onclick="loadPreview()">Refresh Preview</button>
-      </div>
-    </header>
+// Helper
+function qs(id){ return document.getElementById(id); }
 
-    <section class="container">
-      <div class="grid">
-        <div class="card">
-          <h3>Tambah Tugas</h3>
-          <label>Nama Tugas</label>
-          <input id="nama" placeholder="Contoh: Ringkasan Bab 3" />
+// =======================
+// KIRIM TUGAS (ADMIN)
+// =======================
+async function kirimTugas(){
+  const nama = qs('nama').value.trim();
+  const desc = qs('desc').value.trim();
+  const deadline = qs('deadline').value;
+  const user = qs('user').value.trim();
 
-          <label>Deskripsi</label>
-          <textarea id="desc" rows="4" placeholder="Deskripsi singkat..."></textarea>
+  if(!nama || !desc || !deadline || !user){
+    qs('status').innerText = 'Lengkapi semua field!';
+    return;
+  }
 
-          <div class="row">
-            <div style="flex:1">
-              <label>Deadline</label>
-              <input id="deadline" type="date" />
-            </div>
-            <div style="flex:1; margin-left:12px">
-              <label>Untuk (username)</label>
-              <input id="user" placeholder="Contoh: rudi" />
-            </div>
-          </div>
+  qs('status').innerText = 'Mengirim...';
 
-          <div style="margin-top:12px; display:flex; gap:8px;">
-            <button class="btn primary" onclick="kirimTugas()">Kirim Tugas</button>
-            <button class="btn outline" onclick="clearForm()">Bersihkan</button>
-            <span id="status" class="status"></span>
-          </div>
-        </div>
+  try {
+    const res = await fetch(API_URL, {
+      method: 'POST',
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({
+        action: "add",
+        nama,
+        desc,
+        deadline,
+        user
+      })
+    });
 
-        <div class="card">
-          <h3>Preview Tugas (dari server)</h3>
-          <div id="preview" class="table-wrap">Memuat...</div>
-        </div>
-      </div>
-    </section>
+    const text = await res.text();
 
-    <footer class="foot">© <span id="year"></span> TaskHub — Admin</footer>
-  </main>
+    if(res.ok){
+      qs('status').innerText = 'Tugas berhasil dikirim!';
+      clearForm();
+      loadPreview();
+    } else {
+      qs('status').innerText = 'Gagal: ' + text;
+    }
 
-  <script src="script.js"></script>
-  <script>document.getElementById('year').innerText=new Date().getFullYear(); loadPreview();</script>
-</body>
-</html>
+  } catch(err){
+    qs('status').innerText = 'Error jaringan';
+    console.error(err);
+  }
+}
+
+// Reset form
+function clearForm(){
+  qs('nama').value = '';
+  qs('desc').value = '';
+  qs('deadline').value = '';
+  qs('user').value = '';
+  qs('status').innerText = '';
+}
+
+// =======================
+// LOAD PREVIEW (ADMIN)
+// =======================
+async function loadPreview(){
+  const container = qs('preview');
+  container.innerHTML = 'Memuat...';
+
+  try{
+    const r = await fetch(API_URL + '?action=get');
+    if(!r.ok){ container.innerText = 'Gagal memuat'; return; }
+
+    const rows = await r.json();
+    if(!rows || rows.length === 0){
+      container.innerText = 'Belum ada tugas';
+      return;
+    }
+
+    let html = `<table class="table"><tbody>`;
+
+    // Loop dari yang terbaru
+    for(let i = rows.length-1; i >= 0; i--){
+      const r0 = rows[i];
+      html += `
+        <tr>
+          <td>
+            <strong>${escapeHtml(r0[0])}</strong>
+            <div style="color:#9aa0b4">${escapeHtml(r0[1])}</div>
+          </td>
+          <td style="text-align:right">
+            ${escapeHtml(r0[3])}<br>
+            <small>${escapeHtml(r0[2])}</small>
+          </td>
+        </tr>`;
+    }
+
+    html += `</tbody></table>`;
+    container.innerHTML = html;
+
+  } catch(e){
+    container.innerText = 'Error memuat tugas';
+    console.error(e);
+  }
+}
+
+// =======================
+// LOAD TUGAS (USER PAGE)
+// =======================
+async function loadTasks(){
+  const list = qs('list');
+  if(!list) return;
+
+  list.innerHTML = 'Memuat...';
+
+  const filter = (qs('filterUser') && qs('filterUser').value.trim().toLowerCase()) || '';
+
+  try{
+    const r = await fetch(API_URL + '?action=get');
+    if(!r.ok){ list.innerText = 'Gagal memuat'; return; }
+
+    const rows = await r.json();
+    if(!rows || rows.length === 0){
+      list.innerText = 'Belum ada tugas';
+      return;
+    }
+
+    let html = '';
+
+    for(let i = rows.length-1; i >= 0; i--){
+      const r0 = rows[i];
+      const nama = r0[0] || '';
+      const desc = r0[1] || '';
+      const deadline = r0[2] || '';
+      const user = r0[3] || '';
+
+      // Filter user
+      if(filter && user.toLowerCase().indexOf(filter) === -1) continue;
+
+      html += `
+        <div class="task-card">
+          <h4>${escapeHtml(nama)}</h4>
+          <div class="task-meta">Untuk: <strong>${escapeHtml(user)}</strong> • Deadline: ${escapeHtml(deadline)}</div>
+          <div>${escapeHtml(desc)}</div>
+        </div>`;
+    }
+
+    list.innerHTML = html || 'Tidak ada tugas sesuai filter';
+
+  } catch(e){
+    list.innerText = 'Error memuat tugas';
+    console.error(e);
+  }
+}
+
+// Escape untuk mencegah XSS
+function escapeHtml(s){
+  if(!s) return '';
+  return s.toString().replace(/[&<>"']/g, c => ({
+    '&':'&amp;',
+    '<':'&lt;',
+    '>':'&gt;',
+    '"':'&quot;',
+    "'":'&#39;'
+  }[c]));
+}
