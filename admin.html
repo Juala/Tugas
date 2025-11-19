@@ -1,138 +1,101 @@
+<!-- ====== ADMIN PAGE (admin.html) ====== -->
 <!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<title>Admin Panel</title>
+<title>Admin – Kirim Tugas</title>
 <style>
-body { font-family: Arial; padding: 20px; background: #f0f2f5; }
-input, textarea, select {
-  width: 100%; padding: 8px; margin: 6px 0; border-radius: 6px; border: 1px solid #ccc;
-}
-button {
-  padding: 10px 15px; background: #1a73e8; color: white; border: none;
-  border-radius: 8px; cursor: pointer;
-}
-.table { width:100%; border-collapse: collapse; margin-top:20px; }
-.table td { padding:10px; border-bottom:1px solid #ddd; }
+body{font-family:Arial;background:#f1f3f8;padding:20px}
+input,textarea,select{width:100%;padding:10px;margin:8px 0;border:1px solid #ccc;border-radius:6px}
+button{padding:10px 20px;border:none;background:#0066ff;color:white;border-radius:6px;cursor:pointer}
+.table{width:100%;background:white;border-radius:8px;padding:10px}
+.task-card{background:white;padding:12px;margin:10px 0;border-radius:8px}
 </style>
 </head>
 <body>
-
-<h2>ADMIN - Kirim Tugas</h2>
-
+<h2>Admin – Kirim Tugas</h2>
 <label>Nama Tugas</label>
-<input id="nama">
-
+<input id="nama" type="text">
 <label>Deskripsi</label>
-<textarea id="desc" rows="3"></textarea>
-
+<textarea id="desc"></textarea>
 <label>Deadline</label>
 <input id="deadline" type="date">
-
-<label>Untuk User</label>
-<input id="user">
-
+<label>User Tujuan</label>
+<input id="user" type="text" placeholder="misal: budi">
 <button onclick="kirimTugas()">Kirim</button>
-<p id="status"></p>
-
-<h3>Preview Semua Tugas</h3>
+<div id="status" style="margin-top:10px;color:#444"></div>
+<hr>
+<h3>Preview Tugas</h3>
 <div id="preview">Memuat...</div>
-
 <script>
-// ===== GANTI DENGAN WEB APP MU =====
-const API_URL = "PASTE_URL_WEBAPP_DI_SINI"; 
-
-function qs(id){ return document.getElementById(id); }
-
+const API_URL = "https://script.google.com/macros/s/AKfycbw6rbMTqjn3jQKwdq9tZHAVOZmacUWc1FAnw1JP2R4/exec";
+function qs(id){return document.getElementById(id)}
 async function kirimTugas(){
-  const nama = qs('nama').value.trim();
-  const desc = qs('desc').value.trim();
-  const deadline = qs('deadline').value;
-  const user = qs('user').value.trim();
-
-  if(!nama || !desc || !deadline || !user){
-    qs('status').innerText = "Semua field wajib diisi!";
-    return;
-  }
-
-  qs('status').innerText = "Mengirim...";
-
+  const nama=qs('nama').value.trim(); const desc=qs('desc').value.trim();
+  const deadline=qs('deadline').value; const user=qs('user').value.trim();
+  if(!nama||!desc||!deadline||!user){qs('status').innerText='Lengkapi semua field!';return}
+  qs('status').innerText='Mengirim...';
   try{
-    const res = await fetch(API_URL, {
-      method: "POST",
-      headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({nama, desc, deadline, user})
-    });
-
-    const text = await res.text();
-
-    if(!res.ok){
-      qs('status').innerText = "Gagal: " + text;
-      return;
-    }
-
-    qs('status').innerText = "Tugas berhasil dikirim!";
-    clearForm();
-    loadPreview();
-
-  }catch(err){
-    qs('status').innerText = "Error jaringan: " + err;
-  }
+    const r=await fetch(API_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({nama,desc,deadline,user})});
+    const t=await r.text();
+    qs('status').innerText=r.ok?'Tugas berhasil dikirim!':'Gagal: '+t;
+    if(r.ok){clearForm();loadPreview();}
+  }catch(e){qs('status').innerText='Error jaringan';}
 }
-
-function clearForm(){
-  qs('nama').value = "";
-  qs('desc').value = "";
-  qs('deadline').value = "";
-  qs('user').value = "";
-}
-
+function clearForm(){qs('nama').value='';qs('desc').value='';qs('deadline').value='';qs('user').value='';qs('status').innerText=''}
 async function loadPreview(){
-  const cont = qs('preview');
-  cont.innerHTML = "Memuat...";
-
+  const box=qs('preview'); box.innerHTML='Memuat...';
   try{
-    const r = await fetch(API_URL);
-    const rows = await r.json();
-
-    if(!rows.length){
-      cont.innerHTML = "Belum ada tugas.";
-      return;
+    const r=await fetch(API_URL+'?action=get'); const rows=await r.json();
+    if(!rows||rows.length===0){box.innerText='Belum ada tugas';return}
+    let h='<table class="table"><tbody>';
+    for(let i=rows.length-1;i>=0;i--){const r0=rows[i];
+      h+=`<tr><td><strong>${r0[0]}</strong><div style="color:#777">${r0[1]}</div></td>
+           <td style="text-align:right">${r0[3]}<br><small>${r0[2]}</small></td></tr>`;
     }
-
-    let html = `<table class="table"><tbody>`;
-
-    rows.forEach(r=>{
-      html += `
-        <tr>
-          <td>
-            <strong>${escape(r[0])}</strong><br>
-            <small>${escape(r[1])}</small>
-          </td>
-          <td style="text-align:right;">
-            Untuk: ${escape(r[3])}<br>
-            Deadline: ${escape(r[2])}
-          </td>
-        </tr>`;
-    });
-
-    html += `</tbody></table>`;
-    cont.innerHTML = html;
-
-  }catch(err){
-    cont.innerHTML = "Gagal memuat.";
-  }
+    h+='</tbody></table>'; box.innerHTML=h;
+  }catch(e){box.innerText='Error memuat';}
 }
-
-function escape(s){
-  if(!s) return "";
-  return s.replace(/[&<>"']/g, m => ({
-    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
-  }[m]));
-}
-
-window.onload = loadPreview;
+loadPreview();
 </script>
+</body>
+</html>
 
+<!-- ====== USER PAGE (user.html) ====== -->
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>User – Daftar Tugas</title>
+<style>
+body{font-family:Arial;background:#f1f3f8;padding:20px}
+.task-card{background:white;padding:12px;margin:10px 0;border-radius:8px}
+</style>
+</head>
+<body>
+<h2>Daftar Tugas</h2>
+<label>Username saya</label>
+<input id="filterUser" type="text" placeholder="ketik nama user" oninput="loadTasks()">
+<div id="list" style="margin-top:20px">Memuat...</div>
+<script>
+const API_URL = "https://script.google.com/macros/s/AKfycbw6rbMTqjn3jQKwdq9tZHAVOZmacUWc1FAnw1JP2R4/exec";
+function qs(i){return document.getElementById(i)}
+async function loadTasks(){
+  const box=qs('list'); const f=(qs('filterUser').value.trim().toLowerCase());
+  box.innerHTML='Memuat...';
+  try{
+    const r=await fetch(API_URL+'?action=get'); const rows=await r.json();
+    let h='';
+    for(let i=rows.length-1;i>=0;i--){const r0=rows[i];
+      if(f && r0[3].toLowerCase().indexOf(f)===-1) continue;
+      h+=`<div class="task-card"><h4>${r0[0]}</h4>
+           <div>Untuk: <b>${r0[3]}</b> • Deadline: ${r0[2]}</div>
+           <div>${r0[1]}</div></div>`;
+    }
+    box.innerHTML=h||'Tidak ada tugas';
+  }catch(e){box.innerText='Error memuat';}
+}
+loadTasks();
+</script>
 </body>
 </html>
