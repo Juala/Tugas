@@ -1,40 +1,69 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>User - Task List</title>
-  <link rel="stylesheet" href="style.css" />
+<meta charset="UTF-8">
+<title>User Tugas</title>
+<style>
+body { font-family: Arial; padding: 20px; background: #f0f2f5; }
+.card {
+  padding: 15px; background: white; border-radius:10px;
+  margin-bottom:15px; border-left: 5px solid #1a73e8;
+}
+</style>
 </head>
-<body class="dark">
-  <aside class="sidebar small">
-    <div class="brand">Task<span>Hub</span></div>
-    <nav>
-      <a href="admin.html">Admin</a>
-      <a class="active">Tasks</a>
-    </nav>
-  </aside>
+<body>
 
-  <main class="main">
-    <header class="topbar">
-      <div class="top-left">
-        <h1>Daftar Tugas</h1>
-        <p class="sub">Tugas yang dikirim oleh admin</p>
-      </div>
-      <div class="top-right">
-        <input id="filterUser" placeholder="Filter username (kosong = semua)" oninput="loadTasks()" />
-        <button class="btn ghost" onclick="loadTasks()">Refresh</button>
-      </div>
-    </header>
+<h2>Daftar Tugas Kamu</h2>
 
-    <section class="container">
-      <div id="list" class="cards">Memuat tugas...</div>
-    </section>
+<label>Masukkan nama user kamu:</label>
+<input id="filterUser" oninput="loadTasks()">
 
-    <footer class="foot">© <span id="year2"></span> TaskHub — User</footer>
-  </main>
+<div id="list">Memuat...</div>
 
-  <script src="script.js"></script>
-  <script>document.getElementById('year2').innerText=new Date().getFullYear(); loadTasks();</script>
+<script>
+// ====== GANTI DENGAN WEB APP ANDA ======
+const API_URL = "PASTE_URL_WEBAPP_DI_SINI";
+
+function qs(id){ return document.getElementById(id); }
+
+async function loadTasks(){
+  const cont = qs('list');
+  const filter = qs('filterUser').value.trim().toLowerCase();
+
+  cont.innerHTML = "Memuat...";
+
+  try{
+    const r = await fetch(API_URL);
+    const rows = await r.json();
+
+    let html = "";
+
+    rows.forEach(r=>{
+      if(filter && r[3].toLowerCase() !== filter) return;
+
+      html += `
+      <div class="card">
+        <h3>${escape(r[0])}</h3>
+        <p>${escape(r[1])}</p>
+        <small>Deadline: ${escape(r[2])}</small><br>
+        <small>Untuk: ${escape(r[3])}</small>
+      </div>`;
+    });
+
+    cont.innerHTML = html || "Tidak ada tugas untuk user ini.";
+
+  }catch(err){
+    cont.innerText = "Error memuat: " + err;
+  }
+}
+
+function escape(s){
+  if(!s) return "";
+  return s.replace(/[&<>"']/g, m => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[m]));
+}
+
+</script>
 </body>
 </html>
