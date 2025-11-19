@@ -1,12 +1,49 @@
-// ====== GANTI API_URL DENGAN LINK WEBAPP APPS SCRIPT MU ======
-const API_URL = "YOUR_WEBAPP_URL_HERE"; 
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Admin Panel</title>
+<style>
+body { font-family: Arial; padding: 20px; background: #f0f2f5; }
+input, textarea, select {
+  width: 100%; padding: 8px; margin: 6px 0; border-radius: 6px; border: 1px solid #ccc;
+}
+button {
+  padding: 10px 15px; background: #1a73e8; color: white; border: none;
+  border-radius: 8px; cursor: pointer;
+}
+.table { width:100%; border-collapse: collapse; margin-top:20px; }
+.table td { padding:10px; border-bottom:1px solid #ddd; }
+</style>
+</head>
+<body>
 
-// Helper
+<h2>ADMIN - Kirim Tugas</h2>
+
+<label>Nama Tugas</label>
+<input id="nama">
+
+<label>Deskripsi</label>
+<textarea id="desc" rows="3"></textarea>
+
+<label>Deadline</label>
+<input id="deadline" type="date">
+
+<label>Untuk User</label>
+<input id="user">
+
+<button onclick="kirimTugas()">Kirim</button>
+<p id="status"></p>
+
+<h3>Preview Semua Tugas</h3>
+<div id="preview">Memuat...</div>
+
+<script>
+// ===== GANTI DENGAN WEB APP MU =====
+const API_URL = "PASTE_URL_WEBAPP_DI_SINI"; 
+
 function qs(id){ return document.getElementById(id); }
 
-// =======================
-// KIRIM TUGAS (ADMIN)
-// =======================
 async function kirimTugas(){
   const nama = qs('nama').value.trim();
   const desc = qs('desc').value.trim();
@@ -14,151 +51,88 @@ async function kirimTugas(){
   const user = qs('user').value.trim();
 
   if(!nama || !desc || !deadline || !user){
-    qs('status').innerText = 'Lengkapi semua field!';
+    qs('status').innerText = "Semua field wajib diisi!";
     return;
   }
 
-  qs('status').innerText = 'Mengirim...';
+  qs('status').innerText = "Mengirim...";
 
-  try {
+  try{
     const res = await fetch(API_URL, {
-      method: 'POST',
+      method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({
-        action: "add",
-        nama,
-        desc,
-        deadline,
-        user
-      })
+      body: JSON.stringify({nama, desc, deadline, user})
     });
 
     const text = await res.text();
 
-    if(res.ok){
-      qs('status').innerText = 'Tugas berhasil dikirim!';
-      clearForm();
-      loadPreview();
-    } else {
-      qs('status').innerText = 'Gagal: ' + text;
+    if(!res.ok){
+      qs('status').innerText = "Gagal: " + text;
+      return;
     }
 
-  } catch(err){
-    qs('status').innerText = 'Error jaringan';
-    console.error(err);
+    qs('status').innerText = "Tugas berhasil dikirim!";
+    clearForm();
+    loadPreview();
+
+  }catch(err){
+    qs('status').innerText = "Error jaringan: " + err;
   }
 }
 
-// Reset form
 function clearForm(){
-  qs('nama').value = '';
-  qs('desc').value = '';
-  qs('deadline').value = '';
-  qs('user').value = '';
-  qs('status').innerText = '';
+  qs('nama').value = "";
+  qs('desc').value = "";
+  qs('deadline').value = "";
+  qs('user').value = "";
 }
 
-// =======================
-// LOAD PREVIEW (ADMIN)
-// =======================
 async function loadPreview(){
-  const container = qs('preview');
-  container.innerHTML = 'Memuat...';
+  const cont = qs('preview');
+  cont.innerHTML = "Memuat...";
 
   try{
-    const r = await fetch(API_URL + '?action=get');
-    if(!r.ok){ container.innerText = 'Gagal memuat'; return; }
-
+    const r = await fetch(API_URL);
     const rows = await r.json();
-    if(!rows || rows.length === 0){
-      container.innerText = 'Belum ada tugas';
+
+    if(!rows.length){
+      cont.innerHTML = "Belum ada tugas.";
       return;
     }
 
     let html = `<table class="table"><tbody>`;
 
-    // Loop dari yang terbaru
-    for(let i = rows.length-1; i >= 0; i--){
-      const r0 = rows[i];
+    rows.forEach(r=>{
       html += `
         <tr>
           <td>
-            <strong>${escapeHtml(r0[0])}</strong>
-            <div style="color:#9aa0b4">${escapeHtml(r0[1])}</div>
+            <strong>${escape(r[0])}</strong><br>
+            <small>${escape(r[1])}</small>
           </td>
-          <td style="text-align:right">
-            ${escapeHtml(r0[3])}<br>
-            <small>${escapeHtml(r0[2])}</small>
+          <td style="text-align:right;">
+            Untuk: ${escape(r[3])}<br>
+            Deadline: ${escape(r[2])}
           </td>
         </tr>`;
-    }
+    });
 
     html += `</tbody></table>`;
-    container.innerHTML = html;
+    cont.innerHTML = html;
 
-  } catch(e){
-    container.innerText = 'Error memuat tugas';
-    console.error(e);
+  }catch(err){
+    cont.innerHTML = "Gagal memuat.";
   }
 }
 
-// =======================
-// LOAD TUGAS (USER PAGE)
-// =======================
-async function loadTasks(){
-  const list = qs('list');
-  if(!list) return;
-
-  list.innerHTML = 'Memuat...';
-
-  const filter = (qs('filterUser') && qs('filterUser').value.trim().toLowerCase()) || '';
-
-  try{
-    const r = await fetch(API_URL + '?action=get');
-    if(!r.ok){ list.innerText = 'Gagal memuat'; return; }
-
-    const rows = await r.json();
-    if(!rows || rows.length === 0){
-      list.innerText = 'Belum ada tugas';
-      return;
-    }
-
-    let html = '';
-
-    for(let i = rows.length-1; i >= 0; i--){
-      const r0 = rows[i];
-      const nama = r0[0] || '';
-      const desc = r0[1] || '';
-      const deadline = r0[2] || '';
-      const user = r0[3] || '';
-
-      // Filter user
-      if(filter && user.toLowerCase().indexOf(filter) === -1) continue;
-
-      html += `
-        <div class="task-card">
-          <h4>${escapeHtml(nama)}</h4>
-          <div class="task-meta">Untuk: <strong>${escapeHtml(user)}</strong> • Deadline: ${escapeHtml(deadline)}</div>
-          <div>${escapeHtml(desc)}</div>
-        </div>`;
-    }
-
-    list.innerHTML = html || 'Tidak ada tugas sesuai filter';
-
-  } catch(e){
-    list.innerText = 'Error memuat tugas';
-    console.error(e);
-  }
+function escape(s){
+  if(!s) return "";
+  return s.replace(/[&<>"']/g, m => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  }[m]));
 }
 
-// Escape untuk mencegah XSS
-function escapeHtml(s){
-  if(!s) return '';
-  return s.toString().replace(/[&<>"']/g, c => ({
-    '&':'&amp;',
-    '<':'&lt;',
-    '>':'&gt;',
-    '"':'&quot;',
-    "'":'&#39;'
-  }[c]));
-}
+window.onload = loadPreview;
+</script>
+
+</body>
+</html>
