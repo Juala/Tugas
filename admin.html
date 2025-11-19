@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Admin - Task Dashboard</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body class="dark">
+  <aside class="sidebar">
+    <div class="brand">Task<span>Hub</span></div>
+    <nav>
+      <a class="active">Dashboard</a>
+      <a href="user.html" target="_blank">User View</a>
+    </nav>
+    <div class="sidebar-foot">Admin Panel</div>
+  </aside>
+
+  <main class="main">
+    <header class="topbar">
+      <div class="top-left">
+        <h1>Admin Dashboard</h1>
+        <p class="sub">Tambah tugas & lihat preview</p>
+      </div>
+      <div class="top-right">
+        <button id="refreshBtn" class="btn ghost" onclick="loadPreview()">Refresh Preview</button>
+      </div>
+    </header>
+
+    <section class="container">
+      <div class="grid">
+        <div class="card">
+          <h3>Tambah Tugas</h3>
+          <label>Nama Tugas</label>
+          <input id="nama" placeholder="Contoh: Ringkasan Bab 3" />
+
+          <label>Deskripsi</label>
+          <textarea id="desc" rows="4" placeholder="Deskripsi singkat..."></textarea>
+
+          <div class="row">
+            <div style="flex:1">
+              <label>Deadline</label>
+              <input id="deadline" type="date" />
+            </div>
+            <div style="flex:1; margin-left:12px">
+              <label>Untuk (username)</label>
+              <input id="user" placeholder="Contoh: rudi" />
+            </div>
+          </div>
+
+          <div style="margin-top:12px; display:flex; gap:8px;">
+            <button class="btn primary" onclick="kirimTugas()">Kirim Tugas</button>
+            <button class="btn outline" onclick="clearForm()">Bersihkan</button>
+            <span id="status" class="status"></span>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Preview Tugas (dari server)</h3>
+          <div id="preview" class="table-wrap">Memuat...</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="foot">© <span id="year"></span> TaskHub — Admin</footer>
+  </main>
+
+  <script src="script.js"></script>
+  <script>document.getElementById('year').innerText=new Date().getFullYear(); loadPreview();</script>
+</body>
+</html>
